@@ -1,0 +1,18 @@
+# 파일명: metallb.yaml
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: locker-project-ip-pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 172.16.0.110-172.16.0.199
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: sy-l2-ad
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - locker-project-ip-pool

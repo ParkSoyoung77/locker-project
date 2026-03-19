@@ -1,0 +1,27 @@
+# PV
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany  # 여러 Pod가 동시에 읽고 쓸 수 있음
+  nfs:
+    server: 172.16.0.3
+    path: /mnt/DATA2/k8s-web
+
+---
+# PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-pvc
+  namespace: locker-view-ns
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi

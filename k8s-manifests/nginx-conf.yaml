@@ -1,0 +1,54 @@
+# nginx-conf.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: locker-view-ns
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name sy-locker-view.com;
+
+        # [DATA1] 로그 설정
+        access_log /var/log/nginx/sy_access.log;
+        error_log  /var/log/nginx/sy_error.log;
+
+        # [DATA2] 메인 페이지 및 정적 파일 서빙
+        location / {
+            root /usr/share/nginx/html;
+            index index.html;
+            try_files $uri $uri/ /index.html;
+        }
+
+        # 1. 사물함 조회 API (service-locker 연동)
+        location /api/lockers/ {
+            proxy_pass http://locker-service-svc:8001; # ClusterIP 서비스 이름
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        # 2. 사물함 예약 API (service-reserve 연동)
+        location /api/reserve {
+            proxy_pass http://reserve-service-svc:8002;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        # 3. 관리자 전용 경로 (service-admin 연동)
+        location /admin/ {
+            allow 218.235.89.82; # sy님 실제 IP로 수정 필수
+            deny all;
+
+            proxy_pass http://admin-service-svc:8003/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        # 403 에러 처리
+        error_page 403 /403.html;
+        location = /403.html {
+            root /usr/share/nginx/html;
+            internal;
+        }
+    }

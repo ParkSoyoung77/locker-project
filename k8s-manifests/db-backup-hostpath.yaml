@@ -1,0 +1,28 @@
+# db-backup-hostpath.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backup-monitor
+  namespace: locker-view-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backup-monitor
+  template:
+    metadata:
+      labels:
+        app: backup-monitor
+    spec:
+      containers:
+      - name: monitor
+        image: busybox
+        command: ["sh", "-c", "while true; do ls -lh /backup-data; sleep 3600; done"]
+        volumeMounts:
+        - name: nfs-hostpath
+          mountPath: /backup-data  # 파드 내부에서 접근할 경로
+      volumes:
+      - name: nfs-hostpath
+        hostPath:
+          path: /mnt/db_backup     # 워커 노드에 마운트한 바로 그 경로
+          type: Directory

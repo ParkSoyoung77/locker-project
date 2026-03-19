@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy-lab
+  namespace: locker-view-ns
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-lab
+  template:
+    metadata:
+      labels:
+        app: deploy-lab
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        # 1. DATA2: 웹 정적 소스 (index.html 등)
+        - name: html-storage
+          mountPath: /usr/share/nginx/html
+        # 2. DATA1: 로그 저장소 (sy_access.log 등)
+        - name: log-storage
+          mountPath: /var/log/nginx
+        # 3. ConfigMap: default.conf 설정 파일
+        - name: config-storage
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+      volumes:
+      # 1. DATA2용 PVC 연결
+      - name: html-storage
+        persistentVolumeClaim:
+          claimName: nfs-pvc
+      # 2. DATA1용 PVC 연결
+      - name: log-storage
+        persistentVolumeClaim:
+          claimName: nfs-log-pvc
+      # 3. 마스터에서 만든 ConfigMap 연결
+      - name: config-storage
+        configMap:
+          name: nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-clusterip-svc
+  namespace: locker-view-ns
+spec:
+  selector:
+    app: deploy-lab
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: ClusterIP  # 내부 통신 전용
