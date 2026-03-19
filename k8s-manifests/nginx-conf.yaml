@@ -40,7 +40,7 @@ data:
             allow 218.235.89.82; # sy님 실제 IP로 수정 필수
             deny all;
 
-            proxy_pass http://admin-service-svc:8003/;
+            proxy_pass http://admin-service-svc:8003;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }

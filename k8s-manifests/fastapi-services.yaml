@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: locker-app
-        image: sy-locker-view:v2
+        image: sy-locker-view:v3
         imagePullPolicy: Never
         ports:
         - containerPort: 8001
@@ -63,7 +63,7 @@ spec:
     spec:
       containers:
       - name: reserve-app
-        image: sy-locker-reserve:v2
+        image: sy-locker-reserve:v3
         imagePullPolicy: Never
         ports:
         - containerPort: 8002
@@ -109,7 +109,7 @@ spec:
     spec:
       containers:
       - name: admin-app
-        image: sy-locker-admin:v2
+        image: sy-locker-admin:v3
         imagePullPolicy: Never
         ports:
         - containerPort: 8003
