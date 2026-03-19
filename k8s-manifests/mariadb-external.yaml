@@ -1,0 +1,21 @@
+# mariadb-external.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-master-svc  # FastAPI 코드(또는 Env)에서 사용할 DB 호스트 이름
+  namespace: locker-view-ns
+spec:
+  ports:
+    - port: 3306            # 서비스가 노출할 포트
+      targetPort: 3306      # 실제 DB 서버의 포트
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: mariadb-master-svc  # Service 이름과 반드시 일치해야 함
+  namespace: locker-view-ns
+subsets:
+  - addresses:
+      - ip: 172.16.0.8      # MariaDB 마스터 서버의 실제 IP
+    ports:
+      - port: 3306

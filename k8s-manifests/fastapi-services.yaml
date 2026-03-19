@@ -1,0 +1,138 @@
+# fastapi-services.yaml
+# 1. 조회 서비스 (Locker)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locker-view-deploy
+  namespace: locker-view-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: locker-view
+  template:
+    metadata:
+      labels:
+        app: locker-view
+    spec:
+      containers:
+      - name: locker-app
+        image: sy-locker-view:v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8001
+        env:
+        - name: DB_HOST
+          value: "mariadb-master-svc"  # mariadb-external.yaml에서 만든 서비스 이름
+        - name: DB_PORT
+          value: "3306"
+        - name: DB_USER
+          value: "sy_user"
+        - name: DB_PASS
+          value: "1234"
+        - name: DB_NAME
+          value: "locker_system"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: locker-service-svc
+  namespace: locker-view-ns
+spec:
+  selector:
+    app: locker-view
+  ports:
+  - port: 8001
+    targetPort: 8001
+---
+# 2. 예약 서비스 (Reserve)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locker-reserve-deploy
+  namespace: locker-view-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: locker-reserve
+  template:
+    metadata:
+      labels:
+        app: locker-reserve
+    spec:
+      containers:
+      - name: reserve-app
+        image: sy-locker-reserve:v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8002
+        env:
+        - name: DB_HOST
+          value: "mariadb-master-svc"  # mariadb-external.yaml에서 만든 서비스 이름
+        - name: DB_PORT
+          value: "3306"
+        - name: DB_USER
+          value: "sy_user"
+        - name: DB_PASS
+          value: "1234"
+        - name: DB_NAME
+          value: "locker_system"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reserve-service-svc
+  namespace: locker-view-ns
+spec:
+  selector:
+    app: locker-reserve
+  ports:
+  - port: 8002
+    targetPort: 8002
+---
+# 3. 관리 서비스 (Admin)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locker-admin-deploy
+  namespace: locker-view-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: locker-admin
+  template:
+    metadata:
+      labels:
+        app: locker-admin
+    spec:
+      containers:
+      - name: admin-app
+        image: sy-locker-admin:v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8003
+        env:
+        - name: DB_HOST
+          value: "mariadb-master-svc"
+        - name: DB_PORT
+          value: "3306"
+        - name: DB_USER
+          value: "sy_user"
+        - name: DB_PASS
+          value: "1234"
+        - name: DB_NAME
+          value: "locker_system"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-service-svc
+  namespace: locker-view-ns
+spec:
+  selector:
+    app: locker-admin
+  ports:
+  - port: 8003
+    targetPort: 8003
