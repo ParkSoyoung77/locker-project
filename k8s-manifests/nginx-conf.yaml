@@ -1,4 +1,3 @@
-# nginx-conf.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,46 +5,55 @@ metadata:
   namespace: locker-view-ns
 data:
   default.conf: |
+    # [핵심] 새로운 로그 포맷 정의 (맨 앞에 실제 IP가 오도록 설정)
+    log_format sy_special '$remote_addr - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" "$http_x_forwarded_for"';
+
     server {
         listen 80;
         server_name sy-locker-view.com;
+        charset utf-8;
 
-        # [DATA1] 로그 설정
-        access_log /var/log/nginx/sy_access.log;
+        # [진짜 IP 추출 설정]
+        # 모든 사설 대역(Calico, Node, MetalLB)을 신뢰 대역으로 추가합니다.
+        set_real_ip_from 10.0.0.0/8;
+        set_real_ip_from 172.16.0.0/12;
+        set_real_ip_from 192.168.0.0/16;
+        real_ip_header X-Forwarded-For;
+        real_ip_recursive on;
+
+        # [수정] 위에서 정의한 sy_special 포맷을 사용합니다.
+        access_log /var/log/nginx/sy_access.log sy_special;
         error_log  /var/log/nginx/sy_error.log;
 
-        # [DATA2] 메인 페이지 및 정적 파일 서빙
         location / {
             root /usr/share/nginx/html;
             index index.html;
             try_files $uri $uri/ /index.html;
         }
 
-        # 1. 사물함 조회 API (service-locker 연동)
         location /api/lockers/ {
-            proxy_pass http://locker-service-svc:8001; # ClusterIP 서비스 이름
+            proxy_pass http://locker-service-svc:8001;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         }
 
-        # 2. 사물함 예약 API (service-reserve 연동)
         location /api/reserve {
             proxy_pass http://reserve-service-svc:8002;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         }
 
-        # 3. 관리자 전용 경로 (service-admin 연동)
-        location /admin/ {
-            allow 218.235.89.82; # sy님 실제 IP로 수정 필수
-            deny all;
-
-            proxy_pass http://admin-service-svc:8003;
+        location /api/admin/ {
+            proxy_pass http://admin-service-svc:8003/api/admin/;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         }
 
-        # 403 에러 처리
         error_page 403 /403.html;
         location = /403.html {
             root /usr/share/nginx/html;
