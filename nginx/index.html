@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>물품 보관함 예약 시스템</title>
+    <style>
+        body { font-family: 'Pretendard', sans-serif; line-height: 1.6; max-width: 500px; margin: 0 auto; padding: 20px; background: #f0f2f5; }
+        .page { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); display: none; }
+        .active { display: block; }
+        h1, h2 { color: #1a1a1a; text-align: center; margin-bottom: 20px; }
+        .station-btns, .locker-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; }
+        .locker-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        button { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-station { background: #007bff; color: white; width: 100%; }
+        .locker { background: #f8f9fa; border: 2px solid #e9ecef; font-size: 16px; }
+        .occupied { background: #ff4d4f !important; color: white; cursor: not-allowed; border-color: #ff4d4f; }
+        .available { background: #52c41a !important; color: white; border-color: #52c41a; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-size: 14px; color: #666; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .btn-main { width: 100%; background: #333; color: white; margin-top: 10px; font-size: 16px; }
+        .btn-secondary { width: 100%; background: #6c757d; color: white; margin-top: 8px; }
+        .admin-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+        .admin-table th, .admin-table td { border: 1px solid #eee; padding: 10px; text-align: center; }
+        .nfs-box { background: #fff7e6; padding: 15px; border-radius: 10px; border: 1px solid #ffd591; margin-top: 25px; }
+    </style>
+</head>
+<body>
+
+    <div id="page1" class="page active">
+        <h1>🚄 물품 보관함</h1>
+        <div class="station-btns">
+            <button class="btn-station" onclick="loadLockers('서울역')">서울역</button>
+            <button class="btn-station" onclick="loadLockers('부산역')">부산역</button>
+            <button class="btn-station" onclick="loadLockers('대구역')">대구역</button>
+        </div>
+        <button class="btn-main" onclick="showPage('page5')">🔍 내 예약 확인하기</button>
+        <button class="btn-secondary" onclick="showPage('page6'); loadAdminStatus();">⚙️ 관리자 모드</button>
+    </div>
+
+    <div id="page2" class="page">
+        <h2 id="current-station-title">📍 사물함 현황</h2>
+        <div id="locker-container" class="locker-grid"></div>
+        <button class="btn-main" onclick="showPage('page1')">뒤로가기</button>
+    </div>
+
+    <div id="page3" class="page">
+        <h2>📝 예약 신청</h2>
+        <div class="input-group">
+            <label>선택한 사물함</label>
+            <input type="text" id="selected-locker-label" disabled style="background: #eee;">
+        </div>
+        <div class="input-group">
+            <label>비밀번호 (4자리)</label>
+            <input type="password" id="reserve-pw" maxlength="4">
+        </div>
+        <div class="input-group">
+            <label>연락처</label>
+            <input type="text" id="reserve-phone" placeholder="'-' 없이 숫자만">
+        </div>
+        <button class="btn-station" onclick="submitReservation()">예약 확정하기</button>
+        <button class="btn-main" style="background:#aaa" onclick="showPage('page2')">취소</button>
+    </div>
+
+    <div id="page4" class="page">
+        <h2>🎉 예약 완료!</h2>
+        <p style="text-align:center;">정상적으로 예약되었습니다.</p>
+        <button class="btn-main" onclick="location.reload()">홈으로 이동</button>
+    </div>
+
+    <div id="page5" class="page">
+        <h2>🔍 내 예약 확인</h2>
+        <div class="input-group">
+            <label>역 선택</label>
+            <select id="check_station">
+                <option value="서울역">서울역</option>
+                <option value="부산역">부산역</option>
+                <option value="대구역">대구역</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>사물함 번호</label>
+            <input type="number" id="check_num" placeholder="예: 1">
+        </div>
+        <div class="input-group">
+            <label>비밀번호</label>
+            <input type="password" id="check_pw">
+        </div>
+        <button class="btn-station" onclick="checkReservation()">확인하기</button>
+        <button class="btn-main" onclick="showPage('page1')">뒤로가기</button>
+    </div>
+
+    <div id="page6" class="page">
+        <h2>⚙️ 관리자 모드</h2>
+        <div id="admin-status-container" style="overflow-x: auto;"></div>
+
+        <div class="nfs-box">
+            <div style="color: #d46b08; font-weight: bold; margin-bottom: 10px;">📊  인프라 모니터링</div>
+            <button class="btn-main" style="background: #fa8c16; margin-top: 0;" onclick="window.open('http://grafana.sy-locker-view.com', '_blank')">그라파나 대시보드</button>
+        </div>
+        <button class="btn-main" onclick="showPage('page1')">홈으로 이동</button>
+    </div>
+
+    <script>
+        let currentStation = "";
+        let selectedLockerNum = "";
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            const target = document.getElementById(pageId);
+            if (target) target.classList.add('active');
+        }
+
+        async function loadLockers(station) {
+            currentStation = station;
+            document.getElementById('current-station-title').innerText = `📍 ${station} 현황`;
+            const container = document.getElementById('locker-container');
+            container.innerHTML = "로딩 중...";
+            showPage('page2');
+
+            try {
+                const response = await fetch(`/api/lockers/${station}`);
+                const lockers = await response.json();
+                container.innerHTML = "";
+                lockers.forEach(locker => {
+                    const btn = document.createElement('button');
+                    btn.className = `locker ${locker.status === 'available' ? 'available' : 'occupied'}`;
+                    btn.innerText = locker.id < 10 ? '0' + locker.id : locker.id;
+                    if(locker.status === 'available') {
+                        btn.onclick = () => {
+                            selectedLockerNum = locker.id;
+                            document.getElementById('selected-locker-label').value = `${station} ${locker.id}번`;
+                            showPage('page3');
+                        };
+                    }
+                    container.appendChild(btn);
+                });
+            } catch (e) { container.innerHTML = "데이터 로드 실패"; }
+        }
+
+        async function submitReservation() {
+            const payload = {
+                station: currentStation,
+                locker_id: selectedLockerNum,
+                password: document.getElementById('reserve-pw').value,
+                phone: document.getElementById('reserve-phone').value
+            };
+            try {
+                const res = await fetch('/api/reserve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if(res.ok) showPage('page4');
+                else alert("예약 실패: " + (await res.json()).detail);
+            } catch (e) { alert("서버 연결 에러"); }
+        }
+
+
+async function loadAdminStatus() {
+    const container = document.getElementById('admin-status-container');
+    container.innerHTML = "데이터 로딩 중...";
+    try {
+        const response = await fetch('/api/admin/lockers');
+        const data = await response.json();
+
+        // [수정] 사용 중(occupied)인 사물함만 필터링
+        const occupiedLockers = data.filter(item => item.status === 'occupied');
+
+        if (occupiedLockers.length === 0) {
+            container.innerHTML = "<p style='text-align:center; padding:20px;'>현재  사용 중인 사물함이 없습니다. 😴</p>";
+            return;
+        }
+
+        let html = '<table class="admin-table"><tr><th>역</th><th>번호</th><th>상태</th><th>관리</th></tr>';
+        occupiedLockers.forEach(item => {
+            // [수정] 상태를 이모티콘으로 표시
+            const statusEmoji = "❌"; // 사용 중이므로 ❌ (비어있으면 ✅)
+
+            html += `<tr>
+                <td>${item.station_name}</td>
+                <td>${item.locker_num}</td>
+                <td style="font-size: 18px;">${statusEmoji}</td>
+                <td>
+                    <button style="padding: 5px 10px; background: #ff4d4f; color: white; border:none; border-radius:4px; cursor:pointer;"
+                            onclick="resetLocker(${item.id}, '${item.station_name}', ${item.locker_num})">비우기</button>
+                </td>
+            </tr>`;
+        });
+        html += '</table>';
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = "데이터를 불러오지 못했습니다.";
+    }
+}
+
+// 사물함 삭제(초기화) 함수 - db-m 연동용
+async function resetLocker(lockerId, station, num) {
+    if(confirm(`${station} ${num}번 사물함을 강제로 비우시겠습니까?`)) {
+        try {
+            const res = await fetch(`/api/admin/reset/${lockerId}`, {
+                method: 'POST'
+            });
+
+            if(res.ok) {
+                alert(`✅ ${station} ${num}번 사물함이 초기화되었습니다.`);
+                loadAdminStatus(); // 리스트 새로고침
+            } else {
+                alert("❌ 초기화 실패: 서버 에러");
+            }
+        } catch (e) {
+            alert("서버 연결 실패");
+        }
+    }
+}
+
+
+async function checkReservation() {
+    const sn = document.getElementById('check_station').value;
+    const num = document.getElementById('check_num').value;
+    const pw = document.getElementById('check_pw').value;
+
+    if(!num || !pw) {
+        alert("정보를 모두 입력해주세요.");
+        return;
+    }
+
+    try {
+        // 관리자용 API를 재활용하거나 전용 조회 API가 있다면 그쪽으로 연결
+        const res = await fetch('/api/admin/lockers');
+        const data = await res.json();
+        const myLocker = data.find(item => item.station_name === sn && item.locker_num == num && item.password === pw);
+
+        if(myLocker) {
+            alert(`✅ 확인 완료: [${sn}] ${num}번 사물함을 사용 중이십니다.`);
+        } else {
+            alert("❌ 일치하는 예약 정보가 없습니다.");
+        }
+    } catch (e) {
+        alert("서버 연결 실패");
+    }
+}
+    </script>
+</body>
+</html>
